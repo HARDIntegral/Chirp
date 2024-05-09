@@ -1,0 +1,4 @@
+Build Backend Sever:
+    - Have a client connect to the server
+    - Acquire a client ID or come up with one to differentiate clients
+    - Be able to write information between clients
