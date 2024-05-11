@@ -1,25 +1,30 @@
 import * as net from 'net';
+import * as cheerio from 'cheerio';
 
-import * as input from './IO/input';
 import * as data from '../../Util/data';
 import * as request from '../../Util/Connection/request';
-import * as response from '../../Util/Connection/response';
+import * as messageHandler from './Messaging/messageHandler';
+
 const socket = new net.Socket();
 
 socket.connect(data.PORT, data.IP, async () => {
-    const userInput: string = await input.getInput();
-    const socketResponse = response.compileResponse({
-        protocol: 'HTTP/1.1',
-        headers: new Map(),
-        status: 'OK',
-        statusCode: 200,
-        body: `<html><body>${userInput}</body></html>`
-    });
-    socket.write(socketResponse);
+    console.log(`[CLIENT] Connected to server on port ${data.PORT}`);
 });
 
-socket.on('data', (data) => {
-    console.log(data.toString());
+socket.on('data', async data => {
+    const serverRequest = request.parseRequest(data.toString());
+    if (parseInt(serverRequest.statusCode) == 200) {
+        const $ = cheerio.load(serverRequest.body);
+        switch ($('#msg_accept_ready').text()) {
+            case 'READY':
+                messageHandler.sendMessage(socket);
+                break;
+            default:
+                console.log('[CLIENT] Improper server request recieved');
+        }
+    } else {
+        console.log(`[CLIENT] Bad request recieved status code: ${serverRequest.statusCode}`);
+    }
 });
 
 socket.on('close', () => {
